@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Робот-сладкоежка: Направление движения, центр, проигрыш без сброса</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background: linear-gradient(145deg, #1a4d6b 0%, #0c2e42 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .game-container {
+            max-width: 1550px;
+            width: 100%;
+            background: #2b2f3a;
+            border-radius: 56px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1);
+            padding: 20px;
+        }
+
+        .stats-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e2a32;
+            border-radius: 60px;
+            padding: 12px 28px;
+            margin-bottom: 24px;
+            color: #d4f1ff;
+            font-weight: bold;
+            text-shadow: 0 2px 0 #004466;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 5px 8px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .score-box, .candies-left {
+            background: #000000aa;
+            backdrop-filter: blur(4px);
+            padding: 6px 20px;
+            border-radius: 40px;
+            font-size: 1.6rem;
+            letter-spacing: 2px;
+        }
+
+        .score-box span, .candies-left span {
+            color: #ffd966;
+            font-size: 1.8rem;
+            margin-right: 10px;
+        }
+
+        .controls-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .param-control {
+            background: #0d1a22;
+            padding: 5px 15px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #c2e9ff;
+        }
+        .param-control label {
+            font-size: 0.9rem;
+        }
+        .param-control input {
+            width: 55px;
+            background: #f0e6c5;
+            border: none;
+            border-radius: 30px;
+            padding: 5px;
+            text-align: center;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        .reset-btn, .apply-btn {
+            background: #facc15;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 6px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: 0.1s linear;
+            color: #2c2c2c;
+            box-shadow: 0 4px 0 #b27d0a;
+        }
+        .apply-btn {
+            background: #4caf50;
+            box-shadow: 0 4px 0 #1b5e20;
+            color: white;
+        }
+        .reset-btn:active, .apply-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b27d0a;
+        }
+
+        .main-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .field-area {
+            flex: 2;
+            min-width: 320px;
+            background: #3c6e8f;
+            border-radius: 32px;
+            padding: 16px;
+            box-shadow: inset 0 0 0 3px #b0e0ff, 0 12px 24px rgba(0,0,0,0.4);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #aad4f5;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px black;
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+        }
+
+        .code-panel {
+            flex: 1.6;
+            min-width: 300px;
+            background: #1e2b32;
+            border-radius: 36px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            box-shadow: inset 0 1px 3px #4e7b9a, 0 10px 20px rgba(0,0,0,0.4);
+        }
+
+        .blocks-library {
+            background: #14232b;
+            border-radius: 28px;
+            padding: 15px;
+        }
+        .blocks-title {
+            color: #c2e9ff;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .blocks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .command-block {
+            background: #2c4c64;
+            padding: 8px 14px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            font-family: monospace;
+            color: white;
+            cursor: pointer;
+            transition: 0.05s linear;
+            box-shadow: 0 5px 0 #0f2c3b;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .command-block:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #0f2c3b;
+        }
+        .block-fwd { background: #2c7da0; }
+        .block-back { background: #1f6d8f; }
+        .block-right { background: #3b8db0; }
+        .block-left { background: #4f9fbf; }
+        .block-loop { background: #b9792e; }
+        
+        .param-input {
+            width: 60px;
+            background: #f0e6c5;
+            border: none;
+            border-radius: 30px;
+            padding: 5px;
+            text-align: center;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .loop-param {
+            width: 50px;
+        }
+        .script-area {
+            background: #0d1a22;
+            border-radius: 28px;
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .script-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            color: #c2e9ff;
+            padding: 0 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .run-btn {
+            background: #4caf50;
+            border: none;
+            font-size: 1.2rem;
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: monospace;
+            box-shadow: 0 4px 0 #1b5e20;
+            color: white;
+        }
+        .run-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #1b5e20; }
+        .clear-btn {
+            background: #7f8c8d;
+            box-shadow: 0 4px 0 #4a5b5e;
+        }
+        .script-list {
+            background: #071016;
+            border-radius: 20px;
+            padding: 12px;
+            min-height: 320px;
+            max-height: 440px;
+            overflow-y: auto;
+            list-style: none;
+            margin: 0;
+        }
+        .script-list li {
+            background: #1a2c38;
+            margin: 6px 0;
+            padding: 6px 10px;
+            border-radius: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #eef5ff;
+            border-left: 6px solid #facc15;
+            transition: all 0.1s ease;
+        }
+        .script-list li.active-command {
+            background: #3a6e4a;
+            border-left: 6px solid #ffaa44;
+            box-shadow: 0 0 8px #ffaa44;
+            transform: scale(1.01);
+        }
+        .nested-list {
+            margin-left: 24px;
+            border-left: 2px dashed #facc15;
+            padding-left: 12px;
+            width: 100%;
+        }
+        .del-cmd, .del-loop {
+            background: none;
+            border: none;
+            color: #ff8a7a;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: 28px;
+            border-radius: 30px;
+        }
+        .info-message {
+            font-size: 0.8rem;
+            text-align: center;
+            background: #00000088;
+            border-radius: 28px;
+            padding: 6px;
+            margin-top: 8px;
+            color: #cbe9ff;
+        }
+        .game-over-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000000dd;
+            backdrop-filter: blur(10px);
+            color: #ffaa66;
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 30px 50px;
+            border-radius: 60px;
+            z-index: 1000;
+            text-align: center;
+            border: 3px solid #ff6644;
+            font-family: monospace;
+            pointer-events: none;
+            animation: fadeOut 2s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); visibility: hidden; }
+        }
+        button {
+            background: none;
+            border: none;
+        }
+        @media (max-width: 780px) {
+            .score-box, .candies-left { font-size: 1rem; padding: 4px 12px; }
+            .command-block { font-size: 0.75rem; padding: 5px 8px; }
+            .param-control input { width: 45px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="stats-panel">
+        <div class="score-box">🍬 ОЧКИ: <span id="scoreValue">0</span></div>
+        <div class="candies-left">🍭 КОНФЕТ: <span id="candiesLeft">0</span></div>
+        <div class="controls-group">
+            <div class="param-control">
+                <label>🍬 Конфет:</label>
+                <input type="number" id="candiesCountInput" min="5" max="100" value="45" step="1">
+            </div>
+            <div class="param-control">
+                <label>🧱 Препятствий:</label>
+                <input type="number" id="obstaclesCountInput" min="0" max="80" value="25" step="1">
+            </div>
+            <button class="apply-btn" id="applySettingsBtn">✨ Применить</button>
+            <button class="reset-btn" id="resetWorldBtn">🌀 Сброс поля</button>
+        </div>
+    </div>
+    <div class="main-layout">
+        <div class="field-area">
+            <canvas id="gameCanvas" width="600" height="600" style="width:100%; height:auto; max-width:600px; aspect-ratio:1/1"></canvas>
+            <div class="info-message">⭐ Направление движения вперёд показывает большая стрелка и подсветка!</div>
+        </div>
+        <div class="code-panel">
+            <div class="blocks-library">
+                <div class="blocks-title">🧩 БЛОКИ КОМАНД (кликни, чтобы добавить)</div>
+                <div class="blocks-container">
+                    <div class="command-block block-fwd" data-type="forward">➡️ ВПЕРЕД 
+                        <input type="number" class="param-input forward-steps" value="1" min="1" max="5" step="1"> кл
+                    </div>
+                    <div class="command-block block-back" data-type="back">🔙 НАЗАД 
+                        <input type="number" class="param-input back-steps" value="1" min="1" max="5" step="1"> кл
+                    </div>
+                    <div class="command-block block-right" data-type="right">↪️ ВПРАВО 90°</div>
+                    <div class="command-block block-left" data-type="left">↩️ ВЛЕВО 90°</div>
+                    <div class="command-block block-loop" data-type="loop">🔄 ПОВТОРИТЬ 
+                        <input type="number" class="param-input loop-param" value="2" min="1" max="20" step="1"> раз [вложить]
+                    </div>
+                </div>
+                <div class="info-message">✨ Перетащи блок на строку цикла, чтобы добавить внутрь. При выполнении команда подсвечивается.</div>
+            </div>
+            <div class="script-area">
+                <div class="script-header">
+                    <span>📜 ПРОГРАММА РОБОТА (вложенные циклы)</span>
+                    <div>
+                        <button class="run-btn" id="runProgramBtn">🏃 ЗАПУСТИТЬ</button>
+                        <button class="run-btn clear-btn" id="clearProgramBtn">🗑️ ОЧИСТИТЬ</button>
+                    </div>
+                </div>
+                <ul class="script-list" id="scriptList"></ul>
+                <div class="info-message">⚡ Во время выполнения текущая команда подсвечивается зелёным.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ------------------ ИГРОВОЕ ПОЛЕ ------------------
+    const CELL_SIZE = 40;
+    const GRID_W = 15;
+    const GRID_H = 15;
+    let candies = [];
+    let obstacles = [];
+    let robot = { x: 7, y: 7, dir: 0 };
+    let score = 0;
+    let gameActive = true;
+    
+    let savedCandies = [];
+    let savedObstacles = [];
+    
+    let program = [];
+    
+    let isExecuting = false;
+    let executionInterval = null;
+    let currentFlatIndex = 0;
+    let flatCommands = [];
+    let currentHighlightElement = null;
+    
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreSpan = document.getElementById('scoreValue');
+    const candiesLeftSpan = document.getElementById('candiesLeft');
+    const scriptListEl = document.getElementById('scriptList');
+    const resetBtn = document.getElementById('resetWorldBtn');
+    const applyBtn = document.getElementById('applySettingsBtn');
+    const runBtn = document.getElementById('runProgramBtn');
+    const clearBtn = document.getElementById('clearProgramBtn');
+    const candiesCountInput = document.getElementById('candiesCountInput');
+    const obstaclesCountInput = document.getElementById('obstaclesCountInput');
+    
+    // ---------- Генерация мира ----------
+    function generateWorld(candiesCount, obstaclesCount) {
+        let newCandies = [];
+        let newObstacles = [];
+        
+        const startX = Math.floor(GRID_W/2);
+        const startY = Math.floor(GRID_H/2);
+        let occupied = new Set();
+        occupied.add(`${startX},${startY}`);
+        
+        let obstaclesPlaced = 0;
+        let maxAttempts = 3000;
+        for(let i=0; i<obstaclesCount && obstaclesPlaced < obstaclesCount; i++) {
+            let placed = false;
+            for(let attempt=0; attempt<maxAttempts; attempt++) {
+                const x = Math.floor(Math.random() * GRID_W);
+                const y = Math.floor(Math.random() * GRID_H);
+                const key = `${x},${y}`;
+                if(!occupied.has(key)) {
+                    newObstacles.push({ x, y });
+                    occupied.add(key);
+                    obstaclesPlaced++;
+                    placed = true;
+                    break;
+                }
+            }
+            if(!placed) break;
+        }
+        
+        let candiesPlaced = 0;
+        for(let i=0; i<candiesCount && candiesPlaced < candiesCount; i++) {
+            let placed = false;
+            for(let attempt=0; attempt<maxAttempts; attempt++) {
+                const x = Math.floor(Math.random() * GRID_W);
+                const y = Math.floor(Math.random() * GRID_H);
+                const key = `${x},${y}`;
+                if(!occupied.has(key)) {
+                    newCandies.push({ x, y });
+                    occupied.add(key);
+                    candiesPlaced++;
+                    placed = true;
+                    break;
+                }
+            }
+            if(!placed) break;
+        }
+        
+        return { candies: newCandies, obstacles: newObstacles };
+    }
+    
+    function saveLevelState() {
+        savedCandies = JSON.parse(JSON.stringify(candies));
+        savedObstacles = JSON.parse(JSON.stringify(obstacles));
+    }
+    
+    function restoreLevelState() {
+        candies = JSON.parse(JSON.stringify(savedCandies));
+        obstacles = JSON.parse(JSON.stringify(savedObstacles));
+    }
+    
+    function resetWorld() {
+        const candiesCount = parseInt(candiesCountInput.value) || 45;
+        const obstaclesCount = parseInt(obstaclesCountInput.value) || 25;
+        const generated = generateWorld(candiesCount, obstaclesCount);
+        candies = generated.candies;
+        obstacles = generated.obstacles;
+        saveLevelState();
+        robot = { x: Math.floor(GRID_W/2), y: Math.floor(GRID_H/2), dir: 0 };
+        score = 0;
+        gameActive = true;
+        updateUI();
+        drawGame();
+        stopExecution();
+        clearHighlight();
+    }
+    
+    function applySettings() {
+        if(isExecuting) stopExecution();
+        const candiesCount = parseInt(candiesCountInput.value) || 45;
+        const obstaclesCount = parseInt(obstaclesCountInput.value) || 25;
+        const generated = generateWorld(Math.min(candiesCount, 120), Math.min(obstaclesCount, 100));
+        candies = generated.candies;
+        obstacles = generated.obstacles;
+        saveLevelState();
+        robot = { x: Math.floor(GRID_W/2), y: Math.floor(GRID_H/2), dir: 0 };
+        score = 0;
+        gameActive = true;
+        updateUI();
+        drawGame();
+        clearHighlight();
+    }
+    
+    function checkCollisionWithObstacle(x, y) {
+        return obstacles.some(obs => obs.x === x && obs.y === y);
+    }
+    
+    function checkLose() {
+        if(!gameActive) return true;
+        if(robot.x < 0 || robot.x >= GRID_W || robot.y < 0 || robot.y >= GRID_H) {
+            gameActive = false;
+            stopExecution();
+            showGameOverMessage("💥 ВЫХОД ЗА ГРАНИЦУ! 💥");
+            drawGame();
+            return true;
+        }
+        if(checkCollisionWithObstacle(robot.x, robot.y)) {
+            gameActive = false;
+            stopExecution();
+            showGameOverMessage("🧱 СТОЛКНОВЕНИЕ С ПРЕПЯТСТВИЕМ! 🧱");
+            drawGame();
+            return true;
+        }
+        return false;
+    }
+    
+    function showGameOverMessage(text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'game-over-message';
+        msgDiv.innerText = text;
+        document.body.appendChild(msgDiv);
+        setTimeout(() => { if(msgDiv && msgDiv.remove) msgDiv.remove(); }, 2000);
+    }
+    
+    function collectCandyAtRobot() {
+        if(!gameActive) return false;
+        const idx = candies.findIndex(c => c.x === robot.x && c.y === robot.y);
+        if(idx !== -1) {
+            candies.splice(idx, 1);
+            score++;
+            updateUI();
+            drawGame();
+            return true;
+        }
+        return false;
+    }
+    
+    function moveSteps(direction, steps) {
+        if(!gameActive) return false;
+        let dx = 0, dy = 0;
+        if(direction === 'forward') {
+            switch(robot.dir) {
+                case 0: dy = -1; break;
+                case 1: dx = 1; break;
+                case 2: dy = 1; break;
+                case 3: dx = -1; break;
+            }
+        } else {
+            switch(robot.dir) {
+                case 0: dy = 1; break;
+                case 1: dx = -1; break;
+                case 2: dy = -1; break;
+                case 3: dx = 1; break;
+            }
+        }
+        
+        for(let s=0; s<steps; s++) {
+            if(!gameActive) break;
+            let newX = robot.x + dx;
+            let newY = robot.y + dy;
+            
+            if(newX < 0 || newX >= GRID_W || newY < 0 || newY >= GRID_H) {
+                robot.x = newX;
+                robot.y = newY;
+                drawGame();
+                checkLose();
+                return false;
+            }
+            if(checkCollisionWithObstacle(newX, newY)) {
+                robot.x = newX;
+                robot.y = newY;
+                drawGame();
+                checkLose();
+                return false;
+            }
+            robot.x = newX;
+            robot.y = newY;
+            collectCandyAtRobot();
+            if(checkLose()) return false;
+        }
+        drawGame();
+        return true;
+    }
+    
+    function turnRight() { if(gameActive) { robot.dir = (robot.dir + 1) % 4; drawGame(); } }
+    function turnLeft() { if(gameActive) { robot.dir = (robot.dir + 3) % 4; drawGame(); } }
+    
+    function flattenProgram(prog) {
+        let flat = [];
+        for(let cmd of prog) {
+            if(cmd.type === 'forward') {
+                for(let i=0; i<cmd.steps; i++) flat.push({ type: 'forward', originalCmd: cmd });
+            } 
+            else if(cmd.type === 'back') {
+                for(let i=0; i<cmd.steps; i++) flat.push({ type: 'back', originalCmd: cmd });
+            }
+            else if(cmd.type === 'right') flat.push({ type: 'right', originalCmd: cmd });
+            else if(cmd.type === 'left') flat.push({ type: 'left', originalCmd: cmd });
+            else if(cmd.type === 'loop') {
+                let repeats = cmd.repeatCount;
+                for(let r=0; r<repeats; r++) {
+                    let innerFlat = flattenProgram(cmd.children);
+                    flat.push(...innerFlat);
+                }
+            }
+        }
+        return flat;
+    }
+    
+    function clearHighlight() {
+        if(currentHighlightElement) {
+            currentHighlightElement.classList.remove('active-command');
+            currentHighlightElement = null;
+        }
+    }
+    
+    function highlightCommandByFlatIndex(flatIdx) {
+        clearHighlight();
+        if(flatIdx < 0 || flatIdx >= flatCommands.length) return;
+        const targetPrimitive = flatCommands[flatIdx];
+        if(!targetPrimitive.originalCmd) return;
+        
+        function findCommandElement(container, targetCmd) {
+            const items = container.querySelectorAll('li');
+            for(let item of items) {
+                if(item._cmdRef === targetCmd) return item;
+                const nested = item.querySelector('.nested-list');
+                if(nested) {
+                    const found = findCommandElement(nested, targetCmd);
+                    if(found) return found;
+                }
+            }
+            return null;
+        }
+        
+        const targetElement = findCommandElement(scriptListEl, targetPrimitive.originalCmd);
+        if(targetElement) {
+            targetElement.classList.add('active-command');
+            currentHighlightElement = targetElement;
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    
+    function executeSinglePrimitive(cmd) {
+        if(!gameActive) return false;
+        if(cmd.type === 'forward') moveSteps('forward', 1);
+        else if(cmd.type === 'back') moveSteps('back', 1);
+        else if(cmd.type === 'right') turnRight();
+        else if(cmd.type === 'left') turnLeft();
+        updateUI();
+        drawGame();
+        return gameActive;
+    }
+    
+    function startExecution() {
+        if(isExecuting) stopExecution();
+        if(program.length === 0) {
+            alert("Добавьте команды или циклы!");
+            return;
+        }
+        
+        // При запуске: сбрасываем позицию в центр, очки в 0, восстанавливаем уровень
+        restoreLevelState();
+        robot = { x: Math.floor(GRID_W/2), y: Math.floor(GRID_H/2), dir: 0 };
+        score = 0;
+        gameActive = true;
+        updateUI();
+        drawGame();
+        
+        if(checkCollisionWithObstacle(robot.x, robot.y)) {
+            alert("В центре поля препятствие! Невозможно стартовать. Нажмите 'Сброс поля' для генерации нового уровня.");
+            gameActive = false;
+            return;
+        }
+        
+        flatCommands = flattenProgram(program);
+        if(flatCommands.length === 0) {
+            alert("Программа не содержит действий");
+            return;
+        }
+        
+        currentFlatIndex = 0;
+        isExecuting = true;
+        
+        executionInterval = setInterval(() => {
+            if(!isExecuting) return;
+            if(!gameActive) {
+                stopExecution();
+                clearHighlight();
+                return;
+            }
+            if(currentFlatIndex >= flatCommands.length) {
+                stopExecution();
+                clearHighlight();
+                const msgDiv = document.querySelector('.code-panel .info-message');
+                const original = msgDiv.innerHTML;
+                msgDiv.innerHTML = '✅ Программа выполнена! 🎉';
+                setTimeout(() => { if(msgDiv) msgDiv.innerHTML = original; }, 1800);
+                if(candies.length === 0 && gameActive) setTimeout(()=> alert("🏆 ВСЕ КОНФЕТЫ СОБРАНЫ! ПОБЕДА!"), 100);
+                return;
+            }
+            
+            highlightCommandByFlatIndex(currentFlatIndex);
+            const cmd = flatCommands[currentFlatIndex];
+            executeSinglePrimitive(cmd);
+            currentFlatIndex++;
+            
+            if(!gameActive) {
+                stopExecution();
+                clearHighlight();
+            }
+            updateUI();
+            drawGame();
+        }, 420);
+    }
+    
+    function stopExecution() {
+        if(executionInterval) {
+            clearInterval(executionInterval);
+            executionInterval = null;
+        }
+        isExecuting = false;
+        clearHighlight();
+    }
+    
+    function updateUI() {
+        scoreSpan.innerText = score;
+        candiesLeftSpan.innerText = candies.length;
+    }
+    
+    // ------------------ ОТРИСОВКА ПОЛЯ С ЯВНЫМ НАПРАВЛЕНИЕМ ДВИЖЕНИЯ ------------------
+    function drawGame() {
+        canvas.width = GRID_W * CELL_SIZE;
+        canvas.height = GRID_H * CELL_SIZE;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for(let i=0; i<GRID_W; i++) {
+            for(let j=0; j<GRID_H; j++) {
+                let x = i*CELL_SIZE, y = j*CELL_SIZE;
+                let color = ( (i+j)%2 === 0 ) ? '#9ac9e8' : '#7bb3d1';
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, CELL_SIZE-1, CELL_SIZE-1);
+                ctx.strokeStyle = '#4f8db3';
+                ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+            }
+        }
+        
+        // Препятствия
+        for(let obs of obstacles) {
+            let ox = obs.x * CELL_SIZE;
+            let oy = obs.y * CELL_SIZE;
+            ctx.fillStyle = '#5a3e2b';
+            ctx.beginPath();
+            ctx.roundRect(ox+4, oy+4, CELL_SIZE-8, CELL_SIZE-8, 8);
+            ctx.fill();
+            ctx.fillStyle = '#8b5e3c';
+            ctx.beginPath();
+            ctx.roundRect(ox+6, oy+6, CELL_SIZE-12, CELL_SIZE-12, 5);
+            ctx.fill();
+            ctx.fillStyle = '#c9a87b';
+            ctx.font = `${CELL_SIZE * 0.5}px monospace`;
+            ctx.fillText("🧱", ox+12, oy+28);
+        }
+        
+        // Конфеты
+        for(let candy of candies) {
+            let cx = candy.x * CELL_SIZE;
+            let cy = candy.y * CELL_SIZE;
+            ctx.font = `${CELL_SIZE * 0.6}px "Segoe UI Emoji"`;
+            ctx.fillStyle = '#ffdf80';
+            ctx.fillText("🍬", cx + 5, cy + CELL_SIZE-8);
+            ctx.fillStyle = '#ffaa44';
+            ctx.font = `${CELL_SIZE * 0.45}px monospace`;
+            ctx.fillText("⭐", cx+24, cy+12);
+        }
+        
+        // Робот с явным указанием направления движения вперёд
+        if(robot.x >= 0 && robot.x < GRID_W && robot.y >= 0 && robot.y < GRID_H) {
+            let rx = robot.x * CELL_SIZE;
+            let ry = robot.y * CELL_SIZE;
+            
+            // Корпус робота (красный)
+            ctx.fillStyle = '#c22d2d';
+            ctx.beginPath();
+            ctx.roundRect(rx+2, ry+2, CELL_SIZE-4, CELL_SIZE-4, 8);
+            ctx.fill();
+            
+            // Глаза
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(rx+CELL_SIZE*0.35, ry+CELL_SIZE*0.4, 4, 0, 2*Math.PI);
+            ctx.arc(rx+CELL_SIZE*0.65, ry+CELL_SIZE*0.4, 4, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(rx+CELL_SIZE*0.32, ry+CELL_SIZE*0.37, 1.8, 0, 2*Math.PI);
+            ctx.arc(rx+CELL_SIZE*0.62, ry+CELL_SIZE*0.37, 1.8, 0, 2*Math.PI);
+            ctx.fill();
+            
+            // Антенна
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillRect(rx+CELL_SIZE/2-2, ry-2, 4, 6);
+            
+            // БОЛЬШАЯ СТРЕЛКА НАПРАВЛЕНИЯ ВПЕРЁД (показывает куда поедет робот)
+            let centerX = rx + CELL_SIZE/2;
+            let centerY = ry + CELL_SIZE/2;
+            let arrowLength = CELL_SIZE * 0.45;
+            let arrowWidth = CELL_SIZE * 0.2;
+            
+            // Рисуем яркую стрелку в направлении движения
+            let arrowDx = 0, arrowDy = 0;
+            switch(robot.dir) {
+                case 0: arrowDx = 0; arrowDy = -arrowLength; break;
+                case 1: arrowDx = arrowLength; arrowDy = 0; break;
+                case 2: arrowDx = 0; arrowDy = arrowLength; break;
+                case 3: arrowDx = -arrowLength; arrowDy = 0; break;
+            }
+            
+            // Свечение вокруг стрелки
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#ffaa44';
+            ctx.fillStyle = '#ffdd88';
+            ctx.beginPath();
+            // Рисуем треугольную стрелку
+            let arrowTipX = centerX + arrowDx;
+            let arrowTipY = centerY + arrowDy;
+            let perpX = -arrowDy * 0.4;
+            let perpY = arrowDx * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(arrowTipX, arrowTipY);
+            ctx.lineTo(centerX - arrowDx*0.3 + perpX, centerY - arrowDy*0.3 + perpY);
+            ctx.lineTo(centerX - arrowDx*0.3 - perpX, centerY - arrowDy*0.3 - perpY);
+            ctx.fill();
+            
+            // Дополнительная линия-указатель
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + arrowDx*0.7, centerY + arrowDy*0.7);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ffaa44';
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            
+            // Маленькая стрелка на корпусе для красоты
+            ctx.fillStyle = '#ffbb77';
+            let smallDirX=0, smallDirY=0;
+            switch(robot.dir){
+                case 0: smallDirX=0; smallDirY=-10; break;
+                case 1: smallDirX=10; smallDirY=0; break;
+                case 2: smallDirX=0; smallDirY=10; break;
+                case 3: smallDirX=-10; smallDirY=0; break;
+            }
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX+smallDirX*0.6, centerY+smallDirY*0.6);
+            ctx.lineTo(centerX+smallDirX*1.2, centerY+smallDirY*1.2);
+            ctx.fill();
+            
+            // Подсветка направления (клетка впереди)
+            let frontX = robot.x, frontY = robot.y;
+            switch(robot.dir) {
+                case 0: frontY--; break;
+                case 1: frontX++; break;
+                case 2: frontY++; break;
+                case 3: frontX--; break;
+            }
+            if(frontX >= 0 && frontX < GRID_W && frontY >= 0 && frontY < GRID_H) {
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#ffff88';
+                ctx.fillRect(frontX*CELL_SIZE, frontY*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        if(!gameActive && (robot.x < 0 || robot.x >= GRID_W || robot.y < 0 || robot.y >= GRID_H || checkCollisionWithObstacle(robot.x, robot.y))) {
+            ctx.font = "bold 24px monospace";
+            ctx.fillStyle = "#ff4444";
+            ctx.shadowBlur = 8;
+            ctx.fillText("💀 GAME OVER 💀", GRID_W*CELL_SIZE/2-110, GRID_H*CELL_SIZE/2);
+        } else if(candies.length === 0 && score>0 && gameActive) {
+            ctx.font = "bold 20px monospace";
+            ctx.fillStyle = "#ffd966";
+            ctx.shadowBlur = 6;
+            let rx = robot.x * CELL_SIZE;
+            ctx.fillText("🏆 ПОБЕДА! 🏆", rx-40, robot.y*CELL_SIZE-15);
+        }
+    }
+    
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.moveTo(x+r, y);
+            this.lineTo(x+w-r, y);
+            this.quadraticCurveTo(x+w, y, x+w, y+r);
+            this.lineTo(x+w, y+h-r);
+            this.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+            this.lineTo(x+r, y+h);
+            this.quadraticCurveTo(x, y+h, x, y+h-r);
+            this.lineTo(x, y+r);
+            this.quadraticCurveTo(x, y, x+r, y);
+            return this;
+        };
+    }
+    
+    // ------------------ UI ПРОГРАММЫ ------------------
+    function renderProgram(parentEl, commands, level = 0) {
+        parentEl.innerHTML = '';
+        if(commands.length === 0) {
+            let emptyLi = document.createElement('li');
+            emptyLi.style.justifyContent = 'center';
+            emptyLi.style.opacity = '0.7';
+            emptyLi.innerText = '➕ Добавьте команды из блоков (кликните или перетащите на цикл)';
+            parentEl.appendChild(emptyLi);
+            return;
+        }
+        commands.forEach((cmd, idx) => {
+            let li = document.createElement('li');
+            li._cmdRef = cmd;
+            
+            let leftSpan = document.createElement('span');
+            if(cmd.type === 'forward') leftSpan.innerText = `➡️ ВПЕРЕД ${cmd.steps} кл.`;
+            else if(cmd.type === 'back') leftSpan.innerText = `🔙 НАЗАД ${cmd.steps} кл.`;
+            else if(cmd.type === 'right') leftSpan.innerText = `↪️ ПОВЕРНУТЬ ВПРАВО 90°`;
+            else if(cmd.type === 'left') leftSpan.innerText = `↩️ ПОВЕРНУТЬ ВЛЕВО 90°`;
+            else if(cmd.type === 'loop') leftSpan.innerHTML = `🔄 ПОВТОРИТЬ ${cmd.repeatCount} раз [`;
+            
+            let delBtn = document.createElement('button');
+            delBtn.innerText = '✖';
+            delBtn.className = 'del-cmd';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                commands.splice(idx, 1);
+                renderProgram(parentEl, commands);
+            });
+            
+            li.appendChild(leftSpan);
+            if(cmd.type !== 'loop') {
+                li.appendChild(delBtn);
+            } else {
+                let closeSpan = document.createElement('span');
+                closeSpan.innerText = ']';
+                let nestedUl = document.createElement('ul');
+                nestedUl.className = 'nested-list';
+                nestedUl.style.listStyle = 'none';
+                nestedUl.style.paddingLeft = '16px';
+                nestedUl.style.width = '100%';
+                renderProgram(nestedUl, cmd.children, level+1);
+                let loopContainerDiv = document.createElement('div');
+                loopContainerDiv.style.display = 'flex';
+                loopContainerDiv.style.flexWrap = 'wrap';
+                loopContainerDiv.style.alignItems = 'center';
+                loopContainerDiv.style.width = '100%';
+                loopContainerDiv.appendChild(closeSpan);
+                loopContainerDiv.appendChild(delBtn);
+                li.appendChild(loopContainerDiv);
+                li.appendChild(nestedUl);
+                li.style.flexWrap = 'wrap';
+            }
+            
+            li.addEventListener('dragover', (e) => e.preventDefault());
+            li.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rawData = e.dataTransfer.getData('text/plain');
+                if(!rawData) return;
+                let data;
+                try { data = JSON.parse(rawData); } catch(err) { return; }
+                if(cmd.type === 'loop') {
+                    let newCmd = null;
+                    if(data.type === 'forward') newCmd = { type: 'forward', steps: Math.min(parseInt(data.steps)||1,5) };
+                    else if(data.type === 'back') newCmd = { type: 'back', steps: Math.min(parseInt(data.steps)||1,5) };
+                    else if(data.type === 'right') newCmd = { type: 'right' };
+                    else if(data.type === 'left') newCmd = { type: 'left' };
+                    else if(data.type === 'loop') newCmd = { type: 'loop', repeatCount: Math.min(parseInt(data.repeat)||2,20), children: [] };
+                    if(newCmd) {
+                        cmd.children.push(newCmd);
+                        renderProgram(parentEl, commands);
+                    }
+                }
+            });
+            parentEl.appendChild(li);
+        });
+    }
+    
+    function addCommandFromBlock(type, blockElement) {
+        if(type === 'forward') {
+            let stepsInput = blockElement.querySelector('.forward-steps');
+            let steps = stepsInput ? parseInt(stepsInput.value) : 1;
+            program.push({ type: 'forward', steps: Math.min(steps,5) });
+        } 
+        else if(type === 'back') {
+            let stepsInput = blockElement.querySelector('.back-steps');
+            let steps = stepsInput ? parseInt(stepsInput.value) : 1;
+            program.push({ type: 'back', steps: Math.min(steps,5) });
+        }
+        else if(type === 'right') program.push({ type: 'right' });
+        else if(type === 'left') program.push({ type: 'left' });
+        else if(type === 'loop') {
+            let loopInput = blockElement.querySelector('.loop-param');
+            let repeat = loopInput ? parseInt(loopInput.value) : 2;
+            program.push({ type: 'loop', repeatCount: Math.min(repeat,20), children: [] });
+        }
+        renderProgram(scriptListEl, program);
+    }
+    
+    function setupDragDropFromBlocks() {
+        const blocks = document.querySelectorAll('.command-block');
+        blocks.forEach(block => {
+            block.setAttribute('draggable', 'true');
+            block.addEventListener('dragstart', (e) => {
+                const type = block.getAttribute('data-type');
+                let stepsVal = null, repeatVal = null;
+                if(type === 'forward') stepsVal = block.querySelector('.forward-steps')?.value;
+                if(type === 'back') stepsVal = block.querySelector('.back-steps')?.value;
+                if(type === 'loop') repeatVal = block.querySelector('.loop-param')?.value;
+                e.dataTransfer.setData('text/plain', JSON.stringify({ type, steps: stepsVal, repeat: repeatVal }));
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+        scriptListEl.addEventListener('dragover', (e) => e.preventDefault());
+        scriptListEl.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const raw = e.dataTransfer.getData('text/plain');
+            if(!raw) return;
+            let data;
+            try { data = JSON.parse(raw); } catch(err) { return; }
+            let newCmd = null;
+            if(data.type === 'forward') newCmd = { type: 'forward', steps: Math.min(parseInt(data.steps)||1,5) };
+            else if(data.type === 'back') newCmd = { type: 'back', steps: Math.min(parseInt(data.steps)||1,5) };
+            else if(data.type === 'right') newCmd = { type: 'right' };
+            else if(data.type === 'left') newCmd = { type: 'left' };
+            else if(data.type === 'loop') newCmd = { type: 'loop', repeatCount: Math.min(parseInt(data.repeat)||2,20), children: [] };
+            if(newCmd) {
+                program.push(newCmd);
+                renderProgram(scriptListEl, program);
+            }
+        });
+    }
+    
+    function clearProgram() {
+        if(isExecuting) stopExecution();
+        program = [];
+        renderProgram(scriptListEl, program);
+    }
+    
+    function bindBlockClicks() {
+        document.querySelectorAll('.command-block').forEach(block => {
+            block.removeEventListener('click', blockClickHandler);
+            block.addEventListener('click', blockClickHandler);
+        });
+    }
+    function blockClickHandler(e) {
+        if(e.target.tagName === 'INPUT') return;
+        let targetBlock = e.currentTarget;
+        let type = targetBlock.getAttribute('data-type');
+        addCommandFromBlock(type, targetBlock);
+    }
+    
+    function init() {
+        const generated = generateWorld(45, 25);
+        candies = generated.candies;
+        obstacles = generated.obstacles;
+        saveLevelState();
+        robot = { x: Math.floor(GRID_W/2), y: Math.floor(GRID_H/2), dir: 0 };
+        score = 0;
+        gameActive = true;
+        updateUI();
+        drawGame();
+        renderProgram(scriptListEl, program);
+        bindBlockClicks();
+        setupDragDropFromBlocks();
+        runBtn.addEventListener('click', startExecution);
+        clearBtn.addEventListener('click', clearProgram);
+        resetBtn.addEventListener('click', () => {
+            if(isExecuting) stopExecution();
+            resetWorld();
+        });
+        applyBtn.addEventListener('click', () => {
+            if(isExecuting) stopExecution();
+            applySettings();
+        });
+    }
+    init();
+</script>
+</body>
+</html>
