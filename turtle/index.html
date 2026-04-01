@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Робот-сладкоежка</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="game-container">
+    <div class="stats-panel">
+        <div class="score-box">🍬 ОЧКИ: <span id="scoreValue">0</span></div>
+        <div class="candies-left">🍭 КОНФЕТ: <span id="candiesLeft">0</span></div>
+        <div class="controls-group">
+            <div class="param-control">
+                <label>🍬 Конфет:</label>
+                <input type="number" id="candiesCountInput" min="5" max="100" value="25" step="1">
+            </div>
+            <div class="param-control">
+                <label>🧱 Препятствий:</label>
+                <input type="number" id="obstaclesCountInput" min="0" max="80" value="10" step="1">
+            </div>
+            <button class="apply-btn" id="applySettingsBtn">✅ Применить</button>
+            <!--<button class="reset-btn" id="resetWorldBtn">🌀 Сброс поля</button>-->
+        </div>
+    </div>
+    <div class="main-layout">
+        <div class="field-area">
+            <canvas id="gameCanvas" width="600" height="600" style="width:100%; height:auto; max-width:600px; aspect-ratio:1/1"></canvas>
+            <div class="info-message">🍬 Собирай конфеты и зарабатывай очки</div>
+        </div>
+        <div class="code-panel">
+            <div class="blocks-library">
+                <div class="blocks-title">🧩 БЛОКИ КОМАНД (кликни, чтобы добавить)</div>
+                <div class="blocks-container">
+                    <div class="command-block block-fwd" data-type="forward">➡️ ВПЕРЕД 
+                        <input type="number" class="param-input forward-steps" value="1" min="1" max="50" step="1"> кл
+                    </div>
+                    <div class="command-block block-back" data-type="back">🔙 НАЗАД 
+                        <input type="number" class="param-input back-steps" value="1" min="1" max="50" step="1"> кл
+                    </div>
+                    <div class="command-block block-right" data-type="right">↪️ ВПРАВО 90°</div>
+                    <div class="command-block block-left" data-type="left">↩️ ВЛЕВО 90°</div>
+                    <div class="command-block block-loop" data-type="loop">🔄 ПОВТОРИТЬ 
+                        <input type="number" class="param-input loop-param" value="4" min="1" max="200" step="1"> раз
+                    </div>
+                </div>
+                <div class="info-message">Кликните или перетащите блок в окно 📜ПРОГРАММА РОБОТА</div>
+            </div>
+            <div class="script-area">
+                <div class="script-header">
+                    <span>📜 ПРОГРАММА РОБОТА</span>
+                    <div>
+                        <button class="run-btn" id="runProgramBtn">▶ ЗАПУСТИТЬ</button>
+                        <button class="run-btn clear-btn" id="clearProgramBtn">🗑️ ОЧИСТИТЬ</button>
+                    </div>
+                </div>
+                <ul class="script-list" id="scriptList"></ul>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
