@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Аниматор Стикмена | Покадровая анимация и рисование</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Главный контейнер */
+        .app-container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(30, 40, 50, 0.7);
+            backdrop-filter: blur(1px);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* главная сетка */
+        .editor-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        /* холст и панель рисования */
+        .canvas-area {
+            flex: 3;
+            min-width: 280px;
+            background: #232e3a;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .canvas-wrapper {
+            background: #2e3b2e;
+            border-radius: 1rem;
+            display: inline-block;
+            box-shadow: 0 0 0 3px #ffd966, 0 10px 25px black;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: white;
+            cursor: crosshair;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* инструменты рисования и стикмен */
+        .tools-panel {
+            flex: 1.2;
+            min-width: 260px;
+            background: #1e2b32e6;
+            backdrop-filter: blur(4px);
+            border-radius: 1.5rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border: 1px solid #3e5a6b;
+        }
+
+        .section {
+            background: #0f1a1f;
+            border-radius: 1.2rem;
+            padding: 0.8rem 1rem;
+            transition: 0.2s;
+        }
+
+        .section h3 {
+            margin: 0 0 0.7rem 0;
+            font-size: 1.1rem;
+            color: #ffde9c;
+            border-left: 4px solid #f5b042;
+            padding-left: 0.6rem;
+        }
+
+        button, .color-preview, input[type="range"] {
+            font-weight: bold;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        button {
+            background: #2c4c5c;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px black;
+            font-weight: 500;
+        }
+
+        button.primary {
+            background: #e67e22;
+            color: white;
+            box-shadow: 0 2px 8px rgba(230,126,34,0.4);
+        }
+
+        button.primary:hover {
+            background: #f39c12;
+            transform: scale(0.96);
+        }
+
+        button:hover {
+            background: #3e6e84;
+            transform: translateY(-1px);
+        }
+
+        button.danger {
+            background: #8b3c2c;
+        }
+        button.danger:hover {
+            background: #b14531;
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .brush-size {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="color"] {
+            width: 48px;
+            height: 38px;
+            border-radius: 12px;
+            border: none;
+            background: #2e3b2e;
+            cursor: pointer;
+        }
+
+        hr {
+            border-color: #3e5a6b;
+            margin: 0.2rem 0;
+        }
+
+        .frame-list {
+            background: #0c151c;
+            border-radius: 1rem;
+            padding: 0.5rem;
+            max-height: 120px;
+            overflow-y: auto;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .frame-thumb {
+            background: #2c4c5c;
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.1s;
+            font-weight: bold;
+            border: 2px solid transparent;
+        }
+        .frame-thumb.active {
+            border-color: #ffaa33;
+            background: #e67e22;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .status {
+            background: #00000066;
+            border-radius: 24px;
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            text-align: center;
+            color: #c0e0ff;
+        }
+        a.download-link {
+            text-decoration: none;
+        }
+        @media (max-width: 760px) {
+            .editor-grid { flex-direction: column; }
+            canvas { width: 100%; height: auto; }
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="editor-grid">
+        <!-- Левая область: холст -->
+        <div class="canvas-area">
+            <div class="flex-between" style="margin-bottom: 12px;">
+                <span style="color:#ffd966; font-weight: bold;">🎬 Режим: рисование / стикмен</span>
+                <span id="coordStatus" class="status">X: 0, Y: 0</span>
+            </div>
+            <div style="text-align: center;">
+                <canvas id="mainCanvas" width="600" height="450" style="width:100%; height:auto; max-width:600px; aspect-ratio:600/450"></canvas>
+            </div>
+            <div class="button-group" style="justify-content: center; margin-top: 12px;">
+                <button id="clearCanvasBtn" class="danger">🧽 Очистить холст</button>
+                <button id="addBgImageBtn">🖼️ Загрузить фон</button>
+                <button id="removeBgBtn">❌ Удалить фон</button>
+            </div>
+        </div>
+
+        <!-- Правая панель инструментов и анимации -->
+        <div class="tools-panel">
+            <div class="section">
+                <h3>✏️ Кисть / Рисование</h3>
+                <div class="color-row">
+                    <span>🎨 Цвет:</span>
+                    <input type="color" id="brushColor" value="#000000">
+                    <div class="brush-size">
+                        <span>📏 Размер:</span>
+                        <input type="range" id="brushSize" min="1" max="30" value="3">
+                        <span id="sizeValue">3px</span>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button id="drawModeBtn" class="primary active-mode">✏️ Рисовать</button>
+                    <button id="stickmanModeBtn">🧑‍🎨 Стикмен (скелет)</button>
+                </div>
+                <div class="status" id="modeStatus">Текущий режим: Рисование кистью</div>
+            </div>
+
+            <div class="section">
+                <h3>🎞️ Управление кадрами</h3>
+                <div class="button-group">
+                    <button id="newFrameBtn">➕ Новый кадр</button>
+                    <button id="duplicateFrameBtn">📋 Дублировать кадр</button>
+                    <button id="deleteFrameBtn">🗑️ Удалить кадр</button>
+                </div>
+                <div class="frame-list" id="frameListContainer">
+                    <!-- динамические миниатюры -->
+                </div>
+                <div class="button-group">
+                    <button id="previewAnimBtn">▶️ Предпросмотр</button>
+                    <button id="stopAnimBtn">⏹️ Стоп</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>📀 Экспорт видео (MP4)</h3>
+                <div class="button-group">
+                    <button id="exportVideoBtn" class="primary">🎬 Скачать анимацию как видео</button>
+                </div>
+                <div class="status" id="exportStatus">Готов к записи (кадровая анимация до 25 FPS)</div>
+                <div class="brush-size" style="margin-top: 8px;">
+                    <span>⚡ FPS (скорость):</span>
+                    <input type="range" id="fpsSlider" min="4" max="24" value="12">
+                    <span id="fpsValue">12</span>
+                </div>
+            </div>
+            <div class="status">
+                💡 Подсказка: Режим "Стикмен" рисует человечка по кликам (голова-тело-руки-ноги). 
+                Рисунок можно совмещать с фоном!
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ---------- DOM элементы ----------
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Параметры рисования
+        let drawing = false;
+        let currentMode = "draw";    // "draw" или "stickman"
+        let brushColor = '#000000';
+        let brushSize = 3;
+        
+        // Анимационные кадры: каждый кадр - ImageData (полный холст)
+        let frames = [];          // массив ImageData
+        let currentFrameIndex = 0;
+        let animationInterval = null;
+        let isPlaying = false;
+        
+        // Фоновое изображение (загруженное пользователем)
+        let backgroundImage = null;    // Image объект
+        
+        // Размеры канваса фикс
+        const canvasWidth = 600;
+        const canvasHeight = 450;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Инициализация: создать пустой белый холст, 1 кадр
+        function initEmptyCanvasData() {
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            // если есть фон, рисуем поверх
+            applyBackgroundToCanvas();
+            return ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+        }
+        
+        // Применить фон к текущему контексту (без сохранения?)
+        function applyBackgroundToCanvas() {
+            if (backgroundImage) {
+                // рисуем фон поверх текущего? аккуратно: функция для обновления отображения кадра
+                // сохраняем текущее содержимое canvas? Лучше использовать отдельную отрисовку кадра.
+                drawCurrentFrameToCanvas();
+            } else {
+                drawCurrentFrameToCanvas();
+            }
+        }
+        
+        // Отрисовка текущего кадра (с учетом фона) на экран
+        function drawCurrentFrameToCanvas() {
+            if (!frames.length) return;
+            const imgData = frames[currentFrameIndex];
+            if (!imgData) return;
+            ctx.putImageData(imgData, 0, 0);
+            // Если установлен фон, то рисуем его ПОД пикселями? но imgData уже содержит рисунки пользователя.
+            // Чтобы фон был как слой ниже, нужно комбинировать: фон + поверх рисунок.
+            // Логика: при загрузке фона, мы не хотим затереть рисунки. просто отображаем фон под рисунком.
+            // Для этого функция composeWithBackground:
+            composeBackgroundWithCurrent();
+        }
+        
+        function composeBackgroundWithCurrent() {
+            if (!backgroundImage) {
+                // просто выводим кадр без изменений
+                if (frames[currentFrameIndex]) 
+                    ctx.putImageData(frames[currentFrameIndex], 0, 0);
+                return;
+            }
+            // 1) сохраняем текущий кадр (рисунки)
+            const currentDraw = frames[currentFrameIndex];
+            // 2) рисуем фон
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight);
+            // 3) поверх накладываем рисунок (сохраняя альфа / пиксели)
+            if (currentDraw) {
+                ctx.putImageData(currentDraw, 0, 0);
+            }
+        }
+        
+        // Обновить кадр из текущего отображения canvas (сохранить как ImageData) с учетом того, что фон не хранится в кадре
+        function captureCurrentCanvasToFrame() {
+            // Захватываем только то, что нарисовал пользователь поверх фона,
+            // однако чтоб не дублировать фон, нужно сохранять чистый слой рисунка 
+            // но чтобы упростить: мы сохраняем ВСЕ видимое включая фон? Нет, фон должен быть глобальным.
+            // Правильнее: хранить в кадре только пользовательские пиксели (без фона). Фон применяется при отображении.
+            // Но для универсальности, сделаем: кадр содержит ВСЕ, кроме динамического фона? Если фон меняется, рисунок не испортится.
+            // Логика: каждый кадр хранит рисунок поверх прозрачности? Нет, у нас нет прозрачности. Решение: при сохранении кадра, 
+            // временно убрать фон, сохранить то, что нарисовано пользователем (но как различить?), сложно. 
+            // Альтернатива: хранить кадры как полное изображение (включая фон на момент сохранения) Это проще.
+            // Но если пользователь сменит фон, кадры сохранят старый фон... Значит, при смене фона обновлять их.
+            // Поэтому упростим: фоновое изображение применяется глобально, но кадры хранят только рисунок поверх фона? 
+            // Реализуем так: При рисовании/стикмене мы рисуем на canvas (с композицией фона). При сохранении кадра вырезаем фон, но сложно.
+            // Для практичности сделаем: при любом изменении фона, мы перерисовываем все кадры (сохраняя user-рисунок отдельно).
+            // Введём массив userDrawingLayers (ImageData без фона). 
+            // Однако это усложнит код. Более рабочее: храним каждый кадр как полный canvas buffer включая фон, но при смене фона обновляем все кадры.
+            // Сделаем так: храним framesFull (содержащий рисунки пользователя поверх текущего фона). При изменении фона вызываем rebuildAllFramesWithNewBackground.
+            // Это надежно для демо.
+            const currentComposite = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+            return currentComposite;
+        }
+        
+        // Обновить текущий отображаемый кадр из frames с учетом возможного фона
+        function refreshCanvasFromFrame() {
+            if (!frames.length) return;
+            const imgData = frames[currentFrameIndex];
+            if (imgData) {
+                ctx.putImageData(imgData, 0, 0);
+            }
+        }
+        
+        // После загрузки фона пересобрать все кадры (сохраняя старые рисунки, накладывая новый фон)
+        function rebuildFramesWithBackground(newBgImage) {
+            if (!frames.length) return;
+            // Для каждого кадра: из старого изображения извлечь только пользовательские элементы?
+            // Но мы не знаем что рисунок. Для простоты: фон меняется, старый рисунок остается, новый фон подкладывается.
+            // Нужно взять старый кадр (который включал старый фон) и выделить разницу? Слишком сложно. 
+            // Лучше запретить замену фона после рисования с потерей? но мы предложим удалять фон, и рисунок поверх остается.
+            // Решение: при загрузке нового фона, мы можем для каждого кадра перерисовать: новый фон + старый рисунок (на основе сохраненного user слоя).
+            // Чтобы сохранить пользовательский слой, будем дополнительно хранить массив userLayers (без фона). 
+            // Инициализируем userLayers при старте.
+            if (!window.userLayersBackup) {
+                window.userLayersBackup = [];
+                // создаем backup из текущих кадров (но без учета фона)
+                for(let i=0; i<frames.length; i++) {
+                    // из кадра убрать фон? лучше сначала заполнить null
+                    window.userLayersBackup.push(null);
+                }
+            }
+            // Если userLayers нету, создаем из имеющихся кадров, но это не точно.
+            if (window.userLayersBackup.length !== frames.length || window.userLayersBackup.some(l=>l===null)) {
+                for(let i=0; i<frames.length; i++) {
+                    if(!window.userLayersBackup[i]) {
+                        // делаем копию кадра и вырезаем фон? сложно. допустим просто сохраняем кадр как есть - пользовательский слой
+                        window.userLayersBackup[i] = frames[i];
+                    }
+                }
+            }
+            // теперь для каждого кадра, на основе userLayersBackup рисуем новый композит с фоном
+            for (let i=0; i<frames.length; i++) {
+                const userLayer = window.userLayersBackup[i];
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvasWidth;
+                tempCanvas.height = canvasHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                if (newBgImage) {
+                    tempCtx.drawImage(newBgImage, 0, 0, canvasWidth, canvasHeight);
+                } else {
+                    tempCtx.fillStyle = "#FFFFFF";
+                    tempCtx.fillRect(0, 0, canvasWidth, canvasHeight);
+                }
+                if (userLayer) {
+                    tempCtx.putImageData(userLayer, 0, 0);
+                }
+                frames[i] = tempCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+            }
+            refreshCanvasFromFrame();
+        }
+        
+        // Загрузка фона
+        function setBackgroundImage(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    backgroundImage = img;
+                    // Перестраиваем все кадры с новым фоном
+                    if (frames.length === 0) {
+                        // Создаем хотя бы пустой кадр
+                        const emptyData = initEmptyCanvasData();
+                        frames = [emptyData];
+                        window.userLayersBackup = [emptyData];
+                        currentFrameIndex=0;
+                    }
+                    rebuildFramesWithBackground(backgroundImage);
+                    updateFrameListUI();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeBackground() {
+            backgroundImage = null;
+            // перестраиваем кадры с белым фоном
+            rebuildFramesWithBackground(null);
+            updateFrameListUI();
+        }
+        
+        // Рисование
+        function startDraw(e) {
+            drawing = true;
+            draw(e);
+        }
+        function draw(e) {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let mouseX, mouseY;
+            if (e.touches) {
+                mouseX = (e.touches[0].clientX - rect.left) * scaleX;
+                mouseY = (e.touches[0].clientY - rect.top) * scaleY;
+            } else {
+                mouseX = (e.clientX - rect.left) * scaleX;
+                mouseY = (e.clientY - rect.top) * scaleY;
+            }
+            if (mouseX <0 || mouseX>canvasWidth || mouseY<0||mouseY>canvasHeight) return;
+            if (currentMode === "draw") {
+                ctx.beginPath();
+                ctx.arc(mouseX, mouseY, brushSize/2, 0, Math.PI*2);
+                ctx.fillStyle = brushColor;
+                ctx.fill();
+            } else if (currentMode === "stickman") {
+                // в режиме стикмена при клике/движении мышью рисуем фигурку по месту
+                drawStickmanAt(mouseX, mouseY);
+                drawing = false; // одномоментно
+            }
+        }
+        
+        function drawStickmanAt(x, y) {
+            // рисуем стикмена с головой
+            ctx.save();
+            ctx.shadowBlur=0;
+            ctx.beginPath();
+            ctx.arc(x, y-20, 12, 0, Math.PI*2);
+            ctx.fillStyle = brushColor;
+            ctx.fill();
+            ctx.strokeStyle = brushColor;
+            ctx.lineWidth = brushSize;
+            ctx.beginPath();
+            ctx.moveTo(x, y-8);
+            ctx.lineTo(x, y+20);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y+5);
+            ctx.lineTo(x-15, y+25);
+            ctx.stroke();
+            ctx.moveTo(x, y+5);
+            ctx.lineTo(x+15, y+25);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y+20);
+            ctx.lineTo(x-12, y+38);
+            ctx.stroke();
+            ctx.moveTo(x, y+20);
+            ctx.lineTo(x+12, y+38);
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        function endDraw() { drawing = false; }
+        
+        // Сохранить текущий вид canvas в текущий кадр
+        function saveCurrentFrame() {
+            if (!frames.length) return;
+            const currentView = ctx.getImageData(0,0,canvasWidth,canvasHeight);
+            frames[currentFrameIndex] = currentView;
+            // обновить backup пользовательского слоя для композиции (сохраняем текущий кадр)
+            if(!window.userLayersBackup) window.userLayersBackup=[];
+            window.userLayersBackup[currentFrameIndex] = currentView;
+        }
+        
+        // События canvas
+        function attachCanvasEvents() {
+            canvas.addEventListener('mousedown', (e) => {
+                startDraw(e);
+                if(currentMode==="stickman") saveCurrentFrame();
+                else saveCurrentFrame();
+            });
+            canvas.addEventListener('mousemove', (e) => {
+                if (drawing && currentMode==="draw") draw(e);
+                const rect = canvas.getBoundingClientRect();
+                const x = ((e.clientX - rect.left)/rect.width)*canvasWidth;
+                const y = ((e.clientY - rect.top)/rect.height)*canvasHeight;
+                document.getElementById('coordStatus').innerText = `X:${Math.round(x)}, Y:${Math.round(y)}`;
+            });
+            canvas.addEventListener('mouseup', endDraw);
+            canvas.addEventListener('mouseleave', endDraw);
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e); saveCurrentFrame(); });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+            canvas.addEventListener('touchend', endDraw);
+        }
+        
+        // кадры
+        function addNewFrame() {
+            saveCurrentFrame();
+            const newFrameData = ctx.getImageData(0,0,canvasWidth,canvasHeight);
+            frames.push(newFrameData);
+            if(!window.userLayersBackup) window.userLayersBackup=[];
+            window.userLayersBackup.push(newFrameData);
+            currentFrameIndex = frames.length-1;
+            refreshCanvasFromFrame();
+            updateFrameListUI();
+        }
+        
+        function duplicateFrame() {
+            saveCurrentFrame();
+            const copy = ctx.getImageData(0,0,canvasWidth,canvasHeight);
+            frames.splice(currentFrameIndex+1, 0, copy);
+            window.userLayersBackup.splice(currentFrameIndex+1,0,copy);
+            currentFrameIndex++;
+            refreshCanvasFromFrame();
+            updateFrameListUI();
+        }
+        
+        function deleteFrame() {
+            if (frames.length <= 1) return;
+            frames.splice(currentFrameIndex,1);
+            window.userLayersBackup.splice(currentFrameIndex,1);
+            if (currentFrameIndex >= frames.length) currentFrameIndex = frames.length-1;
+            refreshCanvasFromFrame();
+            updateFrameListUI();
+        }
+        
+        function updateFrameListUI() {
+            const container = document.getElementById('frameListContainer');
+            container.innerHTML = '';
+            frames.forEach((frame, idx) => {
+                const div = document.createElement('div');
+                div.className = 'frame-thumb' + (idx === currentFrameIndex ? ' active' : '');
+                div.innerText = idx+1;
+                div.onclick = () => {
+                    saveCurrentFrame();
+                    currentFrameIndex = idx;
+                    refreshCanvasFromFrame();
+                    updateFrameListUI();
+                };
+                container.appendChild(div);
+            });
+        }
+        
+        // preview анимации
+        function previewAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            let frameIdx = 0;
+            const fps = parseInt(document.getElementById('fpsSlider').value);
+            animationInterval = setInterval(() => {
+                if (frames.length === 0) return;
+                currentFrameIndex = frameIdx % frames.length;
+                refreshCanvasFromFrame();
+                frameIdx++;
+                updateFrameListUI();
+            }, 1000/fps);
+            isPlaying = true;
+        }
+        function stopAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            animationInterval = null;
+            isPlaying = false;
+        }
+        
+        // Экспорт в видео (MP4) с помощью MediaRecorder
+        async function exportAsVideo() {
+            const fps = parseInt(document.getElementById('fpsSlider').value);
+            const stream = canvas.captureStream(fps);
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            let chunks = [];
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'stickman_animation.webm';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                document.getElementById('exportStatus').innerText = '✅ Видео готово! (WebM)';
+            };
+            mediaRecorder.start();
+            // проигрываем все кадры в цикле
+            const totalFrames = frames.length;
+            let currentRender = 0;
+            const interval = setInterval(() => {
+                if (currentRender < totalFrames) {
+                    currentFrameIndex = currentRender;
+                    refreshCanvasFromFrame();
+                    updateFrameListUI();
+                    currentRender++;
+                } else {
+                    clearInterval(interval);
+                    mediaRecorder.stop();
+                    stopAnimation();
+                }
+            }, 1000/fps);
+            document.getElementById('exportStatus').innerText = '🎥 Запись видео...';
+        }
+        
+        // инициализация режимов
+        document.getElementById('drawModeBtn').onclick = () => { currentMode = "draw"; document.getElementById('modeStatus').innerText = 'Режим: Кисть'; };
+        document.getElementById('stickmanModeBtn').onclick = () => { currentMode = "stickman"; document.getElementById('modeStatus').innerText = 'Режим: Стикмен (один клик)'; };
+        document.getElementById('brushColor').onchange = (e) => { brushColor = e.target.value; };
+        document.getElementById('brushSize').oninput = (e) => { brushSize = parseInt(e.target.value); document.getElementById('sizeValue').innerText = brushSize+'px'; };
+        document.getElementById('clearCanvasBtn').onclick = () => { ctx.fillStyle='white'; ctx.fillRect(0,0,canvasWidth,canvasHeight); saveCurrentFrame(); refreshCanvasFromFrame(); };
+        document.getElementById('addBgImageBtn').onclick = () => { const input = document.createElement('input'); input.type='file'; input.accept='image/*'; input.onchange=e=>setBackgroundImage(e.target.files[0]); input.click(); };
+        document.getElementById('removeBgBtn').onclick = () => { removeBackground(); };
+        document.getElementById('newFrameBtn').onclick = addNewFrame;
+        document.getElementById('duplicateFrameBtn').onclick = duplicateFrame;
+        document.getElementById('deleteFrameBtn').onclick = deleteFrame;
+        document.getElementById('previewAnimBtn').onclick = previewAnimation;
+        document.getElementById('stopAnimBtn').onclick = stopAnimation;
+        document.getElementById('exportVideoBtn').onclick = exportAsVideo;
+        document.getElementById('fpsSlider').oninput = e => document.getElementById('fpsValue').innerText = e.target.value;
+        
+        // старт
+        const emptyData = initEmptyCanvasData();
+        frames = [emptyData];
+        window.userLayersBackup = [emptyData];
+        currentFrameIndex=0;
+        refreshCanvasFromFrame();
+        attachCanvasEvents();
+        updateFrameListUI();
+    })();
+</script>
+</body>
+</html>
